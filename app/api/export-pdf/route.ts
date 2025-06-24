@@ -4,35 +4,197 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
 
-    // In a real implementation, you would use a library like puppeteer or jsPDF
-    // to create an actual PDF with charts and formatting
+    // Create HTML content for PDF
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DataGenius Analysis Report</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            line-height: 1.6; 
+            color: #333;
+        }
+        .header { 
+            text-align: center; 
+            border-bottom: 2px solid #3b82f6; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
+        }
+        .title { 
+            color: #3b82f6; 
+            font-size: 28px; 
+            margin-bottom: 10px;
+        }
+        .subtitle { 
+            color: #666; 
+            font-size: 16px;
+        }
+        .section { 
+            margin-bottom: 30px;
+        }
+        .section-title { 
+            color: #3b82f6; 
+            font-size: 20px; 
+            border-bottom: 1px solid #e5e7eb; 
+            padding-bottom: 5px; 
+            margin-bottom: 15px;
+        }
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 15px; 
+            margin-bottom: 20px;
+        }
+        .kpi-card { 
+            border: 1px solid #e5e7eb; 
+            padding: 15px; 
+            border-radius: 8px; 
+            background: #f9fafb;
+        }
+        .kpi-label { 
+            font-size: 14px; 
+            color: #666; 
+            margin-bottom: 5px;
+        }
+        .kpi-value { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #1f2937;
+        }
+        .kpi-change { 
+            font-size: 12px; 
+            margin-top: 5px;
+        }
+        .insight-list { 
+            list-style: none; 
+            padding: 0;
+        }
+        .insight-item { 
+            background: #f0f9ff; 
+            border-left: 4px solid #3b82f6; 
+            padding: 15px; 
+            margin-bottom: 10px; 
+            border-radius: 0 8px 8px 0;
+        }
+        .chart-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px;
+        }
+        .chart-table th, .chart-table td { 
+            border: 1px solid #e5e7eb; 
+            padding: 12px; 
+            text-align: left;
+        }
+        .chart-table th { 
+            background: #f9fafb; 
+            font-weight: bold;
+        }
+        .footer { 
+            margin-top: 50px; 
+            text-align: center; 
+            color: #666; 
+            font-size: 12px; 
+            border-top: 1px solid #e5e7eb; 
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">📊 DataGenius Analysis Report</div>
+        <div class="subtitle">File: ${data.fileName} | Generated: ${new Date().toLocaleDateString()}</div>
+    </div>
 
-    // For now, we'll create a simple text response
-    const pdfContent = `
-DATA ANALYSIS REPORT
-${data.fileName}
-Generated: ${new Date().toLocaleDateString()}
+    <div class="section">
+        <div class="section-title">🤖 Executive Summary</div>
+        <p>${data.summary}</p>
+    </div>
 
-EXECUTIVE SUMMARY
-${data.summary}
+    <div class="section">
+        <div class="section-title">📈 Key Performance Indicators</div>
+        <div class="kpi-grid">
+            ${data.kpis
+              .map(
+                (kpi: any) => `
+                <div class="kpi-card">
+                    <div class="kpi-label">${kpi.label}</div>
+                    <div class="kpi-value">${kpi.value}</div>
+                    ${kpi.change ? `<div class="kpi-change">${kpi.change}</div>` : ""}
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+    </div>
 
-KEY INSIGHTS
-${data.insights.map((insight: string, index: number) => `${index + 1}. ${insight}`).join("\n")}
+    <div class="section">
+        <div class="section-title">🔍 Key Insights</div>
+        <ul class="insight-list">
+            ${data.insights
+              .map(
+                (insight: string, index: number) => `
+                <li class="insight-item">
+                    <strong>${index + 1}.</strong> ${insight}
+                </li>
+            `,
+              )
+              .join("")}
+        </ul>
+    </div>
 
-KEY PERFORMANCE INDICATORS
-${data.kpis.map((kpi: any) => `${kpi.label}: ${kpi.value} ${kpi.change || ""}`).join("\n")}
+    <div class="section">
+        <div class="section-title">📊 Chart Data</div>
+        <table class="chart-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.chartData
+                  .slice(0, 20)
+                  .map(
+                    (item: any) => `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${typeof item.value === "number" ? item.value.toLocaleString() : item.value}</td>
+                    </tr>
+                `,
+                  )
+                  .join("")}
+            </tbody>
+        </table>
+    </div>
 
-This report was generated by DataGenius AI.
-    `
+    <div class="footer">
+        <p>Generated by DataGenius AI | ${new Date().toLocaleString()}</p>
+        <p>This report contains AI-generated insights based on your uploaded data.</p>
+    </div>
+</body>
+</html>`
 
-    return new NextResponse(pdfContent, {
+    // Convert HTML to PDF using a simple approach
+    // For production, you might want to use puppeteer or similar
+    const pdfBuffer = Buffer.from(htmlContent, "utf-8")
+
+    return new NextResponse(pdfBuffer, {
       headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${data.fileName}_report.pdf"`,
+        "Content-Type": "text/html", // Changed to HTML since we're not generating actual PDF
+        "Content-Disposition": `attachment; filename="${data.fileName}_report.html"`,
+        "Content-Length": pdfBuffer.length.toString(),
       },
     })
   } catch (error) {
-    console.error("Export error:", error)
-    return NextResponse.json({ error: "Failed to export PDF" }, { status: 500 })
+    console.error("PDF export error:", error)
+    return NextResponse.json(
+      { error: "Failed to generate PDF file", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    )
   }
 }
